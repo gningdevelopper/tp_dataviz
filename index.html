@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<head>
+  <meta charset="utf-8" />
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      position: fixed;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
+    }
+  </style>
+</head>
+
+<body>
+  <script>
+    var width = 700,
+      height = 580;
+
+    var svg = d3
+      .select("body")
+      .append("svg")
+      .attr("width", width)
+      .attr("height", height);
+
+    // On rajoute un groupe englobant toute la visualisation pour plus tard
+    var g = svg.append("g");
+
+    // Autres projections : geoMercator, geoNaturalEarth1, ...
+    // https://github.com/d3/d3-geo/blob/master/README.md
+    // var projection = d3
+    //   .geoAlbersUsa()
+    //   .translate([width / 2, height / 2])
+    //   .scale([500]);
+    var projection = d3
+      .geoConicConformal()
+      .center([2.454071, 46.279229])
+      .scale(2800);
+
+    // On definie une echelle de couleur
+    // via https://observablehq.com/@d3/color-schemes?collection=@d3/d3-scale-chromatic
+    var color = d3
+      .scaleQuantize()
+      .range(["#edf8e9", "#bae4b3", "#74c476", "#31a354", "#006d2c"]);
+
+    var path = d3.geoPath().projection(projection);
+
+    var jourChoisi = "2021-09-12"; // pour demarrer on code en dur un jour a afficher
+    // Chargement des donnees
+    d3.csv("covid.csv").then(function (data) {
+      //Set input domain for color scale
+      color.domain([0, 2000]);
+
+      var cleanData = data.filter((d) => d.sexe == 0);
+
+      d3.json("fr-region.json").then(function (json) {
+        //On fusionne les donnees avec le GeoJSON
+        for (var j = 0; j < json.features.length; j++) {
+          //Nom de l'etat
+          var departement = json.features[j].properties.nom;
+
+          //console.log(departement);
+
+          var jourDepChoisi = cleanData.find(function (row) {
+            return row; // find renvoie la ligne du tableau si la fonction qu'on lui passe en argument renvoie True.
+          });
+        }
+        g.selectAll("path")
+          .data(json.features)
+          .join("path")
+          .attr("d", path)
+          .style("fill", function (d) {
+            //on prend la valeur recupere plus haut
+            var value = d.properties.value;
+
+            if (value) {
+              return color(value);
+            } else {
+              // si pas de valeur alors en gris
+              return "#ccc";
+            }
+          });
+      });
+    });
+  </script>
+</body>
